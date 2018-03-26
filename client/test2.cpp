@@ -12,9 +12,8 @@
 
 #include <iostream>
 
-#define DEVICE            "eth0"
 #define URL_MAX_LEN        2048
-#define MAX_HOST_LEN    1024
+#define MAX_HOST_LEN       1024
 #define MAX_GET_LEN        2048
 
 #define get_u_int8_t(X,O)  (*(uint8_t *)(((uint8_t *)X) + O))
@@ -159,20 +158,22 @@ int prase_packet(const u_char *buf,  int caplen)
     offset += sizeof(struct iphdr);
     show_iphdr(ip);
      
-    if(ip->protocol != IPPROTO_TCP) {
-        return -1;
+    if (ip->protocol == IPPROTO_UDP) {
+      printf("--------udp\n");
+    } else if (ip->protocol == IPPROTO_TCP) {
+      /*tcp header*/
+      struct tcphdr *tcp = (struct tcphdr *)(buf + offset);
+      offset += (tcp->doff << 2);
+      payload_len = caplen - offset;
+      tcp_payload = (buf + offset);
+      show_tcphdr(tcp);
+
+      /*prase http header*/
+      packet_http_handle(tcp_payload, payload_len);
+    } else {
+      return -1;
     }
 
-    /*tcp header*/
-    struct tcphdr *tcp = (struct tcphdr *)(buf + offset);
-    offset += (tcp->doff << 2);
-    payload_len = caplen - offset;
-    tcp_payload = (buf + offset);
-    show_tcphdr(tcp);
-
-    /*prase http header*/
-    packet_http_handle(tcp_payload, payload_len);
-    
     return 0;
 }
 
@@ -182,10 +183,9 @@ void get_packet(u_char *user, const struct pcap_pkthdr *pkthdr, const u_char *pa
     printf("\n----------------------------------------\n");
     printf("\t\tpacket %d\n", count);
     printf("----------------------------------------\n");
-    printf("Packet id: %d\n", count);
     printf("Packet length: %d\n", pkthdr->len);  
     printf("Number of bytes: %d\n", pkthdr->caplen);  
-      printf("Recieved time: %s\n", ctime((const time_t *)&pkthdr->ts.tv_sec));
+    printf("Recieved time: %s\n", ctime((const time_t *)&pkthdr->ts.tv_sec));
 
     prase_packet(packet, pkthdr->len);
     count++;
@@ -193,36 +193,24 @@ void get_packet(u_char *user, const struct pcap_pkthdr *pkthdr, const u_char *pa
 
 int main()  
 {  
-    char errBuf[PCAP_ERRBUF_SIZE]; /*error Buff*/
+    char error_buf[PCAP_ERRBUF_SIZE]; /*error Buff*/
     pcap_t *dev; /*network interface*/
-    bpf_u_int32 netp, maskp; 
-    char *net, *mask;
-    struct in_addr addr;
+    char *DEVICE=pcap_lookupdev(error_buf);
+    bpf_u_int32 netp, maskp;
 
-    /*look up device network addr and mask*/
-    if(pcap_lookupnet(DEVICE, &netp, &maskp, errBuf)) {
+    if(pcap_lookupnet(DEVICE, &netp, &maskp, error_buf)) {
         printf("get net failure\n");
         exit(1);
     }
-    addr.s_addr = netp;
-    net = inet_ntoa(addr);
-    printf("network: %s\n", net);
-    
-    addr.s_addr = maskp;
-    mask = inet_ntoa(addr);
-    printf("mask: %s\n", mask);
 
-    /*open network device for packet capture*/
-    dev = pcap_open_live(DEVICE, 65536, 1, 0, errBuf);
+    dev = pcap_open_live(DEVICE, 65536, 1, 0, error_buf);
     if(NULL == dev) {
         printf("open %s failure\n", DEVICE);
         exit(1);
     }
     
-    /*process packets from a live capture or savefile*/
     pcap_loop(dev, 0, get_packet, NULL);
     
-    /*close device*/
     pcap_close(dev);
 
     return 0; 

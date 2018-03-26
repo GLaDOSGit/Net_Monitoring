@@ -8,6 +8,7 @@
 #define NET_MONITORING_CLIENT_PROBE_H_
 
 #include <map>
+#include <pcap.h>
 #include <set>
 #include <string>
 #include <vector>
@@ -22,12 +23,19 @@ class ProbeProcessor {
    ProbeProcessor();
    ~ProbeProcessor();
  
+   void CapturePacket();
+
    void GetLocalIp();
 
    void PortMonitoring();
 
    void ProbeNetworkAdapter();
  private:
+   pcap_t* dev_;
+
+   unsigned int64 download_;
+   unsigned int64 upload_;
+
    std::map<std::string, IOData> adapter_data_;
    
    std::string local_ip_;

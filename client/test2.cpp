@@ -138,16 +138,19 @@ int prase_packet(const u_char *buf,  int caplen)
     
     /* ether header */
     struct ethhdr *eth = NULL;
+    // 将数据包塞入以太帧的结构体
     eth = (struct ethhdr *)buf;
+    // 解析端口协议
     e_type = ntohs(eth->h_proto);
+    // 偏移量
     offset = sizeof(struct ethhdr);
     show_ethhdr(eth);
 
     /*vlan 802.1q*/    
-    while(e_type == ETH_P_8021Q) {
-        e_type = (buf[offset+2] << 8) + buf[offset+3];
-        offset += 4;
-    }  
+    //while(e_type == ETH_P_8021Q) {
+        //e_type = (buf[offset+2] << 8) + buf[offset+3];
+        //offset += 4;
+    //}  
     if (e_type != ETH_P_IP) {
         return -1;
     }   

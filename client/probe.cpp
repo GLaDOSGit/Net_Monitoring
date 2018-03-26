@@ -6,14 +6,22 @@
 
 #include "probe.h"
 
+#include <arpa/inet.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
+#include <netinet/in.h>
 #include <pcap.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <time.h>
 #include <unistd.h>
 
-#include <sstream>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -24,10 +32,38 @@ const char kGetPort[] = "netstat -napl";
 }
 
 ProbeProcessor::ProbeProcessor() {
+  char error_buf[PCAP_ERRBUF_SIZE];
+  char *DEVICE=pcap_lookupdev(error_buf);
+  bpf_u_int32 netp, maskp;
+
+  if(pcap_lookupnet(DEVICE, &netp, &maskp, error_buf)) {
+      printf("get net failure\n");
+      exit(1);
+  }
+
+  dev_ = pcap_open_live(DEVICE, 65536, 1, 0, error_buf);
+  if(NULL == dev_) {
+      printf("open %s failure\n", DEVICE);
+      exit(1);
+  }
 };
 
 ProbeProcessor::~ProbeProcessor() {
+  pcap_close(dev_);
 };
+
+void get_packet(
+    u_char *user,
+    const struct pcap_pkthdr *pkthdr,
+    const u_char *packet) {
+  printf("Packet length: %d\n", pkthdr->len);
+  printf("Number of bytes: %d\n", pkthdr->caplen);
+  printf("Recieved time: %s\n", ctime((const time_t *)&pkthdr->ts.tv_sec));
+}
+
+void ProbeProcessor::CapturePacket() {
+  pcap_loop(dev_, 0, get_packet, NULL);
+}
 
 void ProbeProcessor::ProbeNetworkAdapter() {
   fstream dev_file(kDevPath);
@@ -127,7 +163,8 @@ void ProbeProcessor::GetLocalIp() {
 }
 
 int main () {
-  //ProbeProcessor* x = new ProbeProcessor();
+  ProbeProcessor* x = new ProbeProcessor();
+  x->CapturePacket();
   //x->GetLocalIp();
   //x->PortMonitoring();
 }

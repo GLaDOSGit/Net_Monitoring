@@ -25,13 +25,29 @@ class ProbeProcessor {
  
    void CapturePacket();
 
-   void GetLocalIp();
+   std::string GetLocalIp() {
+     return local_ip_;
+   };
 
-   void GetLocalMac();
+   std::string GetLocalMac() {
+     return local_mac_;
+   };
 
    void PortMonitoring();
 
    void ProbeNetworkAdapter();
+
+   void SetLocalIp();
+
+   void SetLocalMac();
+
+   void SetDownload(int caplen) {
+     download_ += caplen;
+   };
+
+   void SetUpload(int caplen) {
+     upload_ += caplen;
+   };
 
  private:
    pcap_t* dev_;
@@ -45,7 +61,7 @@ class ProbeProcessor {
    std::string local_ip_;
 
    std::string local_mac_;
-   
+
    std::set<std::string> open_port_;
 };
 

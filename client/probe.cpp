@@ -32,7 +32,11 @@ const char kGetLocalMac[] = "ifconfig | grep 'HWaddr' | awk '{ print $5 }'";
 const char kGetPort[] = "netstat -napl";
 }
 
+ProbeProcessor* x = new ProbeProcessor();
+
 ProbeProcessor::ProbeProcessor() {
+  download_ = 0;
+  upload_ = 0;
   char error_buf[PCAP_ERRBUF_SIZE];
   char *DEVICE=pcap_lookupdev(error_buf);
   bpf_u_int32 netp, maskp;
@@ -61,9 +65,13 @@ bool IsDownload(struct ethhdr *eth)
       eth->h_dest[2], eth->h_dest[3],
       eth->h_dest[4], eth->h_dest[5]);
   
-  cout << dest <<endl;
-  cout << strcasecmp(local_mac_.c_str(), dest) << endl;
-  return true;
+  //cout << dest <<endl;
+  //cout << x->GetLocalMac().c_str() << endl;
+  //cout << strcasecmp(x->GetLocalMac().c_str(), dest) << endl;
+  if (strcasecmp(x->GetLocalMac().c_str(), dest)) {
+    return true;
+  }
+  return false;
   //char source[18];
   //sprintf(source, "%02x:%02x:%02x:%02x:%02x:%02x",
       //eth->h_source[0], eth->h_source[1],
@@ -71,7 +79,7 @@ bool IsDownload(struct ethhdr *eth)
       //eth->h_source[4], eth->h_source[5]);
 }
 
-void get_packet(
+void GetPacket(
     u_char *user,
     const struct pcap_pkthdr *pkthdr,
     const u_char *packet) {
@@ -81,11 +89,15 @@ void get_packet(
   //uint32_t offset = sizeof(struct ethhdr);
 
   struct ethhdr *eth = (struct ethhdr *)packet;
-  IsDownload(eth);
+  if (IsDownload(eth)) {
+    x->SetDownload(pkthdr->caplen);
+  } else {
+    x->SetUpload(pkthdr->caplen);
+  }
 }
 
 void ProbeProcessor::CapturePacket() {
-  pcap_loop(dev_, 0, get_packet, NULL);
+  pcap_loop(dev_, 0, GetPacket, NULL);
 }
 
 void ProbeProcessor::ProbeNetworkAdapter() {
@@ -166,7 +178,7 @@ void ProbeProcessor::PortMonitoring() {
   
 }
 
-void ProbeProcessor::GetLocalIp() {
+void ProbeProcessor::SetLocalIp() {
   FILE *ip_file_ptr=NULL;
   if((ip_file_ptr = popen(kGetLocalIp, "r")) == NULL) {
     cout << "error" << endl;
@@ -185,7 +197,7 @@ void ProbeProcessor::GetLocalIp() {
   pclose(ip_file_ptr);
 }
 
-void ProbeProcessor::GetLocalMac() {
+void ProbeProcessor::SetLocalMac() {
   FILE *ip_file_ptr=NULL;
   if((ip_file_ptr = popen(kGetLocalMac, "r")) == NULL) {
     cout << "error" << endl;
@@ -205,8 +217,7 @@ void ProbeProcessor::GetLocalMac() {
 }
 
 int main () {
-  ProbeProcessor* x = new ProbeProcessor();
-  x->GetLocalMac();
+  x->SetLocalMac();
   x->CapturePacket();
   //x->PortMonitoring();
 }

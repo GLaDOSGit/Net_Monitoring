@@ -27,18 +27,24 @@ class ProbeProcessor {
 
    void GetLocalIp();
 
+   void GetLocalMac();
+
    void PortMonitoring();
 
    void ProbeNetworkAdapter();
+
  private:
    pcap_t* dev_;
 
-   unsigned int64 download_;
-   unsigned int64 upload_;
+   unsigned long long download_;
+
+   unsigned long long upload_;
 
    std::map<std::string, IOData> adapter_data_;
    
    std::string local_ip_;
+
+   std::string local_mac_;
    
    std::set<std::string> open_port_;
 };

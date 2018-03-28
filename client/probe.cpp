@@ -10,6 +10,7 @@
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
+#include <linux/udp.h>
 #include <netinet/in.h>
 #include <pcap.h>
 #include <stdio.h>
@@ -37,6 +38,9 @@ ProbeProcessor* x = new ProbeProcessor();
 ProbeProcessor::ProbeProcessor() {
   download_ = 0;
   upload_ = 0;
+  port_data_.clear();
+  SetLocalMac();
+
   char error_buf[PCAP_ERRBUF_SIZE];
   char *DEVICE=pcap_lookupdev(error_buf);
   bpf_u_int32 netp, maskp;
@@ -85,15 +89,46 @@ void GetPacket(
     const u_char *packet) {
   //int len = pkthdr->caplen;
   //char* time = ctime((const time_t *)&pkthdr->ts.tv_sec);
-  //uint16_t e_type = ntohs(eth->h_proto);
-  //uint32_t offset = sizeof(struct ethhdr);
 
   struct ethhdr *eth = (struct ethhdr *)packet;
+  uint16_t e_type = ntohs(eth->h_proto);
+  uint32_t offset = sizeof(struct ethhdr);
+  bool is_download = false;
   if (IsDownload(eth)) {
     x->SetDownload(pkthdr->caplen);
+    is_download = true;
   } else {
     x->SetUpload(pkthdr->caplen);
   }
+
+  if (e_type == ETH_P_IP) {
+    struct iphdr *ip = (struct iphdr *)(packet + offset);
+    e_type = ntohs(ip->protocol);
+    offset += sizeof(struct iphdr);
+    
+    if (ip->protocol == IPPROTO_UDP) {
+      struct udphdr *udp = (struct udphdr *)(packet + offset);
+      int source_port = ntohs(udp->source);
+      int dest_port = ntohs(udp->dest);
+
+      if (is_download) {
+        x->SetPortData(dest_port, pkthdr->caplen);
+      } else {
+        x->SetPortData(source_port, pkthdr->caplen);
+      }
+    } else if (ip->protocol == IPPROTO_TCP) {
+      struct tcphdr *tcp = (struct tcphdr *)(packet + offset);
+      int source_port = ntohs(tcp->source);
+      int dest_port = ntohs(tcp->dest);
+
+      if (is_download) {
+        x->SetPortData(dest_port, pkthdr->caplen);
+      } else {
+        x->SetPortData(source_port, pkthdr->caplen);
+      }
+    }
+  }
+  x->PrintfPortData();
 }
 
 void ProbeProcessor::CapturePacket() {
@@ -217,7 +252,6 @@ void ProbeProcessor::SetLocalMac() {
 }
 
 int main () {
-  x->SetLocalMac();
   x->CapturePacket();
   //x->PortMonitoring();
 }

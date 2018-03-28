@@ -9,6 +9,7 @@
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
+#include <linux/udp.h>
 
 #include <iostream>
 
@@ -66,6 +67,14 @@ void show_tcphdr(struct tcphdr *tcp)
     printf("dest port: %d\n", ntohs(tcp->dest));
     printf("sequence number: %d\n", ntohs(tcp->seq));
     printf("ack sequence: %d\n", ntohs(tcp->ack_seq));
+}
+
+/*Display TCP Header*/
+void show_udphdr(struct udphdr *udp)
+{
+    printf("----------------udp---------------------\n");
+    printf("source port: %d\n", ntohs(udp->source));
+    printf("dest port: %d\n", ntohs(udp->dest));
 }
 
 int parse_http_head(const u_char *payload, int payload_len, char *url)
@@ -133,8 +142,8 @@ int prase_packet(const u_char *buf,  int caplen)
 {
     uint16_t e_type;
     uint32_t offset;
-    int payload_len;
-    const u_char *tcp_payload;
+    //int payload_len;
+    //const u_char *tcp_payload;
     
     /* ether header */
     struct ethhdr *eth = NULL;
@@ -144,7 +153,7 @@ int prase_packet(const u_char *buf,  int caplen)
     e_type = ntohs(eth->h_proto);
     // 偏移量
     offset = sizeof(struct ethhdr);
-    show_ethhdr(eth);
+    //show_ethhdr(eth);
 
     /*vlan 802.1q*/    
     //while(e_type == ETH_P_8021Q) {
@@ -159,20 +168,24 @@ int prase_packet(const u_char *buf,  int caplen)
     struct iphdr *ip = (struct iphdr *)(buf + offset);
     e_type = ntohs(ip->protocol);
     offset += sizeof(struct iphdr);
-    show_iphdr(ip);
+    //show_iphdr(ip);
      
     if (ip->protocol == IPPROTO_UDP) {
       printf("--------udp\n");
-    } else if (ip->protocol == IPPROTO_TCP) {
-      /*tcp header*/
-      struct tcphdr *tcp = (struct tcphdr *)(buf + offset);
-      offset += (tcp->doff << 2);
-      payload_len = caplen - offset;
-      tcp_payload = (buf + offset);
-      show_tcphdr(tcp);
+      struct udphdr *udp = (struct udphdr *)(buf + offset);
 
-      /*prase http header*/
-      packet_http_handle(tcp_payload, payload_len);
+      show_udphdr(udp);
+      
+    //} else if (ip->protocol == IPPROTO_TCP) {
+      ////[>tcp header<]
+      //struct tcphdr *tcp = (struct tcphdr *)(buf + offset);
+      //offset += (tcp->doff << 2);
+      //payload_len = caplen - offset;
+      //tcp_payload = (buf + offset);
+      //show_tcphdr(tcp);
+
+      ////[>prase http header<]
+      //packet_http_handle(tcp_payload, payload_len);
     } else {
       return -1;
     }

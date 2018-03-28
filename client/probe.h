@@ -7,8 +7,10 @@
 #ifndef NET_MONITORING_CLIENT_PROBE_H_
 #define NET_MONITORING_CLIENT_PROBE_H_
 
-#include <map>
+#include <stdio.h>
 #include <pcap.h>
+
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -41,6 +43,10 @@ class ProbeProcessor {
 
    void SetLocalMac();
 
+   void SetPortData(const int& port, const int& caplen) {
+     port_data_[port] = port_data_[port] + caplen;
+   };
+
    void SetDownload(int caplen) {
      download_ += caplen;
    };
@@ -49,12 +55,21 @@ class ProbeProcessor {
      upload_ += caplen;
    };
 
+   void PrintfPortData() {
+     for (auto iter = port_data_.begin(); iter != port_data_.end(); iter++) {
+       printf ("%d --- %d\n", iter->first, iter->second);
+     }
+     printf ("in :%lld     out:%lld\n", download_, upload_);
+   };
+
  private:
    pcap_t* dev_;
 
    unsigned long long download_;
 
    unsigned long long upload_;
+
+   std::map<int, int> port_data_;
 
    std::map<std::string, IOData> adapter_data_;
    

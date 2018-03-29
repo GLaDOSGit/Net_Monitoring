@@ -27,7 +27,6 @@
 using namespace std;
 
 namespace {
-const char kDevPath[] = "/proc/net/dev";
 const char kGetLocalIp[] = "ifconfig | grep 'inet'| grep -v '127.0.0.1' | cut -d: -f2 | awk '{ print $1 }'";
 const char kGetLocalMac[] = "ifconfig | grep 'HWaddr' | awk '{ print $5 }'";
 }
@@ -67,12 +66,10 @@ bool IsDownload(struct ethhdr *eth) {
       eth->h_dest[0], eth->h_dest[1],
       eth->h_dest[2], eth->h_dest[3],
       eth->h_dest[4], eth->h_dest[5]);
-
   if (strcasecmp(x->GetLocalMac().c_str(), dest)) {
-    return true;
+    return 1;
   }
-
-  return false;
+  return 0;
 }
 
 void GetPacket(
@@ -88,7 +85,7 @@ void GetPacket(
   if (IsDownload(eth)) {
     x->SetDownload(pkthdr->len);
     is_download = true;
-  } else {
+  } else if (IsDownload(eth) == 0) {
     x->SetUpload(pkthdr->len);
   }
 
@@ -122,7 +119,6 @@ void GetPacket(
     }
   }
   x->PrintfPortData();
-  x->ProbeNetworkAdapter();
 }
 
 void ProbeProcessor::CapturePacket() {
@@ -164,50 +160,6 @@ void ProbeProcessor::SetLocalMac() {
   }
   cout << local_mac_ << endl;
   pclose(ip_file_ptr);
-}
-
-void ProbeProcessor::ProbeNetworkAdapter() {
-  fstream dev_file(kDevPath);
-  if (!dev_file) {
-    cout << "error" << endl;
-  }
-
-  dev_file.clear();
-  dev_file.seekp(0, std::ios::beg);
-  string str;
-  IOData data;
-  string adapter;
-  int num = -1;
-  while (dev_file >> str) {
-    int data_size = str.size();
-    if (str[data_size - 1] == ':') {
-      adapter = str.substr(0, data_size - 1);
-      num = 0;
-    } else if (num != -1) {
-      std::stringstream data_int;
-      data_int << str;
-      if (num < 8) {
-        data_int >> data.receive[num];
-      } else {
-        data_int >> data.transmit[num%8];
-      }
-      num++;
-    }
-    if (num == 16) {
-      adapter_data_[adapter] = data;
-    }
-  }
-  for (auto iter = adapter_data_.begin(); iter != adapter_data_.end(); iter++) {
-    cout << iter->first <<endl;
-    for (int i = 0; i < 8; i++) {
-      cout << iter->second.receive[i] << "  ";
-    }
-    cout << endl;
-    for (int i = 0; i < 8; i++) {
-      cout << iter->second.transmit[i] << "  ";
-    }
-    cout << endl;
-  }
 }
 
 int main () {

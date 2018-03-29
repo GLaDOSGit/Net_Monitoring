@@ -35,10 +35,6 @@ class ProbeProcessor {
      return local_mac_;
    };
 
-   void PortMonitoring();
-
-   void ProbeNetworkAdapter();
-
    void SetLocalIp();
 
    void SetLocalMac();
@@ -61,6 +57,8 @@ class ProbeProcessor {
      }
      printf ("in :%lld     out:%lld\n", download_, upload_);
    };
+
+   void ProbeNetworkAdapter();
 
  private:
    pcap_t* dev_;

@@ -72,7 +72,7 @@ bool IsDownload(struct ethhdr *eth) {
   return 0;
 }
 
-void GetPacket(
+void ProbeProcessor::GetPacket(
     u_char *user,
     const struct pcap_pkthdr *pkthdr,
     const u_char *packet) {

@@ -22,6 +22,10 @@ class ProbeProcessor {
  
   void CapturePacket();
 
+  static void GetPacket(u_char *user,
+                        const struct pcap_pkthdr *pkthdr,
+                        const u_char *packet);
+  
   std::string GetLocalIp() {
     return local_ip_;
   };

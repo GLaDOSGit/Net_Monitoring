@@ -14,13 +14,14 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <iostream>
 #include <map>
 #include <mutex>
-#include <string>
 #include <sstream>
+#include <string>
 
 #include "http_post.h"
 #include "probe.h"
@@ -30,12 +31,17 @@ using namespace std;
 namespace {
 const unsigned short kSocketPort = 60482;
 const unsigned short kIptablePort = 60483;
+const double kPostTimeMax = 10;
 const int kQueue = 5;
 }
 
 // target[0]:ip target[1]:post_url target[2]:post_port
 vector<string>* target = new vector<string>;
 mutex target_mutex;
+
+map<string, unsigned long long>* network_data = new map<string, unsigned long long>;
+mutex network_data_mutex;
+time_t last_time;
 
 ProbeProcessor* probe_ptr = new ProbeProcessor();
 
@@ -79,12 +85,12 @@ void* http_post(void* args) {
     if (target->empty()) {
       continue;
     }
-    sleep(3);
+    sleep(kPostTimeMax + 1);
     stringstream temp;
     temp << (*target)[2];
     int port;
     temp >> port;
-    http_post->Post((*target)[0], (*target)[1], "aaaa=bbbb", port);
+    http_post->Post((*target)[0], (*target)[1], "aa=bb", port);
   } 
   return NULL;
 }
@@ -92,7 +98,7 @@ void* http_post(void* args) {
 void processing(char* buffer, const int& buffer_len) {
   vector<string>* temp_target = new vector<string>;
   string temp_value;
-  for (int i = 0; i < buffer_len; i++) {
+  for (int i = 0; i < buffer_len; ++i) {
     if (buffer[i] == '&') {
       cout << temp_value << endl;
       temp_target->push_back(temp_value);
@@ -186,28 +192,50 @@ void GetPacket(u_char *user,
 
     }
   }
-  //probe_ptr->PrintfPortData();
+
+  time_t now_time;  
+  time(&now_time); 
+  if (difftime(now_time, last_time) > kPostTimeMax) {
+    //probe_ptr->PrintfPortData();
+    last_time = now_time;
+    //printf("----------------\n");
+    lock_guard<mutex> guard(network_data_mutex);
+    probe_ptr->GetNetworkData(network_data);
+    probe_ptr->DataClear(); 
+  }
 }
 
-int main() {
-  
+void start_socket_server() {
   pthread_t socket_server_tid;
   int ret = pthread_create(&socket_server_tid, NULL, socket_server, NULL);
   if(ret != 0) {
     cout << "socket_server_create error:error_code=" << ret << endl;
   }
+  return;
+}
 
+void start_http_server() {
   pthread_t http_post_tid;
-  ret = pthread_create(&http_post_tid, NULL, http_post, NULL);
+  int ret = pthread_create(&http_post_tid, NULL, http_post, NULL);
   if(ret != 0) {
     cout << "http_post_create error:error_code=" << ret << endl;
   }
+  return;
+}
 
-  //pthread_t socket_server_tid;
-  //int ret = pthread_create(&socket_server_tid, NULL, socket_server, NULL);
-  //if(ret != 0) {
-    //cout << "socket_server_create error:error_code=" << ret << endl;
-  //}
+void start_iptable_server() {
+  pthread_t iptable_server_tid;
+  int ret = pthread_create(&iptable_server_tid, NULL, iptable_server, NULL);
+  if(ret != 0) {
+    cout << "iptable_server_create error:error_code=" << ret << endl;
+  }
+  return;
+}
+
+int main() {
+  start_socket_server(); 
+  start_http_server(); 
+  start_iptable_server(); 
 
   char error_buf[PCAP_ERRBUF_SIZE];
   char *DEVICE=pcap_lookupdev(error_buf);
@@ -225,6 +253,7 @@ int main() {
       exit(1);
   }
 
+  time(&last_time);
   pcap_loop(dev, 0, GetPacket, NULL);
   
   pcap_close(dev);

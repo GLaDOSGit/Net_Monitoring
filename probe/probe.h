@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#include <iostream>
+
 class ProbeProcessor {
  public:
   ProbeProcessor();
@@ -35,32 +37,35 @@ class ProbeProcessor {
   void SetLocalMac();
 
   void SetPortData(const int& port, const int& caplen) {
-    port_data_[port] = port_data_[port] + caplen;
+    std::string port_str = std::to_string(port);;
+    port_data_[port_str] = port_data_[port_str] + caplen;
   };
 
   void SetDownload(int caplen) {
-    download_ += caplen;
-    //printf ("len : %d\n", caplen);
+    port_data_["download"] += caplen;
   };
 
   void SetUpload(int caplen) {
-    upload_ += caplen;
-    //printf ("len : %d\n", caplen);
+    port_data_["upload"] += caplen;
   };
 
   void PrintfPortData() {
     for (auto iter = port_data_.begin(); iter != port_data_.end(); iter++) {
-      printf ("%d --- %d\n", iter->first, iter->second);
+      std::cout << iter->first;
+      printf (" --- %lld\n", iter->second);
     }
-    printf ("in :%lld     out:%lld\n", download_, upload_);
   };
 
+  void GetNetworkData(std::map<std::string, unsigned long long>* port_data) {
+    *port_data = port_data_;
+  }
+
+  void DataClear() {
+    port_data_.clear();
+  }
+
  private:
-  unsigned long long download_;
-
-  unsigned long long upload_;
-
-  std::map<int, int> port_data_;
+  std::map<std::string, unsigned long long> port_data_;
 
   std::string local_ip_;
 

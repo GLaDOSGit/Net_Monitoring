@@ -32,9 +32,7 @@ const char kGetLocalMac[] = "ifconfig | grep 'HWaddr' | awk '{ print $5 }'";
 }
 
 ProbeProcessor::ProbeProcessor() {
-  download_ = 0;
-  upload_ = 0;
-  port_data_.clear();
+  DataClear();
   SetLocalMac();
   SetLocalIp();
 };

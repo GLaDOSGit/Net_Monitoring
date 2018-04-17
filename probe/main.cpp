@@ -73,7 +73,7 @@ void* iptable_server(void* args) {
     int buffer_len = recv(conn, buffer, sizeof(buffer), 0);
     cout << buffer_len << endl;
     close(conn);
-  } 
+  }
 
   close(s_id);
   return NULL;
@@ -87,10 +87,19 @@ void* http_post(void* args) {
     }
     sleep(kPostTimeMax + 1);
     stringstream temp;
-    temp << (*target)[2];
     int port;
+    string temp_str;
+    temp << (*target)[2];
     temp >> port;
-    http_post->Post((*target)[0], (*target)[1], "aa=bb", port);
+
+    string data = "";
+    lock_guard<mutex> guard(network_data_mutex);
+    for (auto iter = network_data->begin(); iter != network_data->end(); iter++) {
+      data += iter->first + "="  + to_string(iter->second) + "&";
+    }
+    cout << data <<endl;
+
+    http_post->Post((*target)[0], (*target)[1], data, port);
   } 
   return NULL;
 }
@@ -196,7 +205,7 @@ void GetPacket(u_char *user,
   time_t now_time;  
   time(&now_time); 
   if (difftime(now_time, last_time) > kPostTimeMax) {
-    //probe_ptr->PrintfPortData();
+    probe_ptr->PrintfPortData();
     last_time = now_time;
     //printf("----------------\n");
     lock_guard<mutex> guard(network_data_mutex);

@@ -23,39 +23,43 @@ HttpPost::~HttpPost() {
 };
 
 void HttpPost::Post(string host, string url, string data, int port) {
-    struct hostent *p_hostent = gethostbyname(host.c_str());
-    if(p_hostent == NULL) {
-        return;
-    }
+  cout << host << endl;
+  cout << url << endl;
+  cout << data << endl;
+  cout << port << endl;
+  struct hostent *p_hostent = gethostbyname(host.c_str());
+  if(p_hostent == NULL) {
+      return;
+  }
 
-    sockaddr_in addr_server;
-    addr_server.sin_family = AF_INET;
-    addr_server.sin_port = htons(port);
-    memcpy(&(addr_server.sin_addr), p_hostent->h_addr_list[0], sizeof(addr_server.sin_addr));
-    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    int res = connect(sock, (sockaddr*)&addr_server, sizeof(addr_server));
-    if(res == -1) {
-        cout<< "Connect failed "<<endl;
-        close(sock);
-        return;
-    }
+  sockaddr_in addr_server;
+  addr_server.sin_family = AF_INET;
+  addr_server.sin_port = htons(port);
+  memcpy(&(addr_server.sin_addr), p_hostent->h_addr_list[0], sizeof(addr_server.sin_addr));
+  int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  int res = connect(sock, (sockaddr*)&addr_server, sizeof(addr_server));
+  if(res == -1) {
+      cout<< "Connect failed "<<endl;
+      close(sock);
+      return;
+  }
 
-    std::stringstream stream;
-    stream << "POST " << url;
-    stream << " HTTP/1.0\r\n";
-    stream << "Host: "<< host  << "\r\n";
-    stream << "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3\r\n";
-    stream << "Content-Type:application/x-www-form-urlencoded\r\n";
-    stream << "Content-Length:" << data.length()<<"\r\n";
-    stream << "Connection:close\r\n\r\n";
-    stream << data.c_str();
+  std::stringstream stream;
+  stream << "POST " << url;
+  stream << " HTTP/1.0\r\n";
+  stream << "Host: "<< host  << "\r\n";
+  stream << "User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; zh-CN; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3\r\n";
+  stream << "Content-Type:application/x-www-form-urlencoded\r\n";
+  stream << "Content-Length:" << data.length()<<"\r\n";
+  stream << "Connection:close\r\n\r\n";
+  stream << data.c_str();
 
-    string sendData = stream.str();
-    send(sock,sendData.c_str(),sendData.size(),0);
-    string  m_readBuffer;
-    if(m_readBuffer.empty())
-        m_readBuffer.resize(512);
-    recv(sock,&m_readBuffer[0], m_readBuffer.size(),0);
+  string sendData = stream.str();
+  send(sock,sendData.c_str(),sendData.size(),0);
+  string  m_readBuffer;
+  if(m_readBuffer.empty())
+      m_readBuffer.resize(512);
+  recv(sock,&m_readBuffer[0], m_readBuffer.size(),0);
 
-    close(sock);
+  close(sock);
 } 

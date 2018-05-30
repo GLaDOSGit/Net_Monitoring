@@ -30,7 +30,6 @@ using namespace std;
 
 namespace {
 const unsigned short kSocketPort = 60482;
-const unsigned short kIptablePort = 60483;
 const double kPostTimeMax = 10;
 const int kQueue = 5;
 }
@@ -42,6 +41,7 @@ mutex target_mutex;
 map<string, unsigned long long>* network_data = new map<string, unsigned long long>;
 mutex network_data_mutex;
 time_t last_time;
+string ip;
 
 ProbeProcessor* probe_ptr = new ProbeProcessor();
 
@@ -51,16 +51,17 @@ void* iptable_server(void* args) {
     if (target->empty()) {
       continue;
     }
-    sleep(kPostTimeMax);
+    sleep(kPostTimeMax + 10);
     stringstream temp;
     int port;
     string temp_str;
     temp << (*target)[2];
     temp >> port;
 
-    string data = "get iptables";
+    string data = "get iptables=&ip=" + ip + "&";
 
-    string iptables = http_post->Post((*target)[0], (*target)[1], data, port);
+    string recv = http_post->Post((*target)[0], (*target)[1], data, port);
+    cout << recv <<endl;
 
   }
   return NULL;
@@ -84,6 +85,7 @@ void* http_post(void* args) {
     for (auto iter = network_data->begin(); iter != network_data->end(); iter++) {
       data += iter->first + "="  + to_string(iter->second) + "&";
     }
+    data += "ip=" + ip + "&"; 
     //cout << data <<endl;
 
     http_post->Post((*target)[0], (*target)[1], data, port);
@@ -239,6 +241,7 @@ int main(int argc, char * argv[]) {
   }
   
   probe_ptr->SetLocalIp(argv[1]);
+  ip = argv[1];
   probe_ptr->SetLocalMac(argv[2]);
 	
   char error_buf[PCAP_ERRBUF_SIZE];

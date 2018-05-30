@@ -14,7 +14,7 @@ class HttpPost {
   HttpPost();
   ~HttpPost();
 
-	std::string Post(std::string host, std::string url, std::string data, int port);
+  std::string Post(std::string host, std::string url, std::string data, int port);
 };
 
 #endif // NET_MONITORING_CLIENT_HTTP_POST_H_

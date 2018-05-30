@@ -51,18 +51,17 @@ void* iptable_server(void* args) {
     if (target->empty()) {
       continue;
     }
-    sleep(kPostTimeMax + 1);
+    sleep(kPostTimeMax);
     stringstream temp;
     int port;
     string temp_str;
     temp << (*target)[2];
     temp >> port;
 
-		string data = "get iptables";
+    string data = "get iptables";
 
     string iptables = http_post->Post((*target)[0], (*target)[1], data, port);
 
-		// 待续
   }
   return NULL;
 }
@@ -193,8 +192,8 @@ void GetPacket(u_char *user,
   time_t now_time;  
   time(&now_time); 
   if (difftime(now_time, last_time) > kPostTimeMax) {
-    probe_ptr->PrintfPortData();
     last_time = now_time;
+    probe_ptr->PrintfPortData();
     //printf("----------------\n");
     lock_guard<mutex> guard(network_data_mutex);
     probe_ptr->GetNetworkData(network_data);
@@ -234,16 +233,17 @@ int main(int argc, char * argv[]) {
   start_http_server(); 
   start_iptable_server(); 
 
-	if (argc < 3) {
-		printf("argc num ERROR!\n");
-		return 1;
-	}
-
-	probe_ptr->SetLocalIp(argv[1]);
-	probe_ptr->SetLocalMac(argv[2]);
+  if (argc < 4) {
+    printf("argc num ERROR!\n");
+    return 1;
+  }
+  
+  probe_ptr->SetLocalIp(argv[1]);
+  probe_ptr->SetLocalMac(argv[2]);
 	
   char error_buf[PCAP_ERRBUF_SIZE];
-  char *DEVICE=pcap_lookupdev(error_buf);
+  // char *DEVICE=pcap_lookupdev(error_buf);
+  char *DEVICE= argv[3];
   bpf_u_int32 netp, maskp;
 
   if(pcap_lookupnet(DEVICE, &netp, &maskp, error_buf)) {

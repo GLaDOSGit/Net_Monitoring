@@ -46,36 +46,24 @@ time_t last_time;
 ProbeProcessor* probe_ptr = new ProbeProcessor();
 
 void* iptable_server(void* args) {
-  int s_id = socket(AF_INET, SOCK_STREAM, 0);
-  struct sockaddr_in server_sockaddr;
-  server_sockaddr.sin_family = AF_INET;
-  server_sockaddr.sin_port = htons(kIptablePort);
-  server_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-  if(bind(s_id, (struct sockaddr*) &server_sockaddr,
-          sizeof(server_sockaddr)) == -1) {
-    exit(1);
-  }
-  if(listen(s_id, kQueue) == -1) {
-    exit(1);
-  }
-
-  struct sockaddr_in client_addr;
-  socklen_t length = sizeof(client_addr);
-  while(true) {
-    int conn = accept(s_id, (struct sockaddr*)&client_addr, &length);
-    if(conn < 0) {
-      exit(1);
+  HttpPost* http_post = new HttpPost;
+  while (1) {
+    if (target->empty()) {
+      continue;
     }
+    sleep(kPostTimeMax + 1);
+    stringstream temp;
+    int port;
+    string temp_str;
+    temp << (*target)[2];
+    temp >> port;
 
-    char buffer[1024];
-    memset(buffer, 0 ,sizeof(buffer));
-    int buffer_len = recv(conn, buffer, sizeof(buffer), 0);
-    cout << buffer_len << endl;
-    close(conn);
+		string data = "get iptables";
+
+    string iptables = http_post->Post((*target)[0], (*target)[1], data, port);
+
+		// 待续
   }
-
-  close(s_id);
   return NULL;
 }
 
@@ -100,7 +88,7 @@ void* http_post(void* args) {
     //cout << data <<endl;
 
     http_post->Post((*target)[0], (*target)[1], data, port);
-  } 
+  }
   return NULL;
 }
 
@@ -205,7 +193,7 @@ void GetPacket(u_char *user,
   time_t now_time;  
   time(&now_time); 
   if (difftime(now_time, last_time) > kPostTimeMax) {
-    //probe_ptr->PrintfPortData();
+    probe_ptr->PrintfPortData();
     last_time = now_time;
     //printf("----------------\n");
     lock_guard<mutex> guard(network_data_mutex);
@@ -241,11 +229,19 @@ void start_iptable_server() {
   return;
 }
 
-int main() {
+int main(int argc, char * argv[]) {
   start_socket_server(); 
   start_http_server(); 
   start_iptable_server(); 
 
+	if (argc < 3) {
+		printf("argc num ERROR!\n");
+		return 1;
+	}
+
+	probe_ptr->SetLocalIp(argv[1]);
+	probe_ptr->SetLocalMac(argv[2]);
+	
   char error_buf[PCAP_ERRBUF_SIZE];
   char *DEVICE=pcap_lookupdev(error_buf);
   bpf_u_int32 netp, maskp;

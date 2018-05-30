@@ -32,9 +32,9 @@ class ProbeProcessor {
 
   bool IsDownload(struct ethhdr *eth);
 
-  void SetLocalIp();
+  void SetLocalIp(char* ip);
 
-  void SetLocalMac();
+  void SetLocalMac(char* mac);
 
   void SetPortData(const int& port, const int& caplen) {
     std::string port_str = std::to_string(port);;

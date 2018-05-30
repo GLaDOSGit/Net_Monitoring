@@ -22,14 +22,14 @@ HttpPost::HttpPost() {
 HttpPost::~HttpPost() {
 };
 
-void HttpPost::Post(string host, string url, string data, int port) {
+string HttpPost::Post(string host, string url, string data, int port) {
   cout << host << endl;
   cout << url << endl;
   cout << data << endl;
   cout << port << endl;
   struct hostent *p_hostent = gethostbyname(host.c_str());
   if(p_hostent == NULL) {
-      return;
+      return NULL;
   }
 
   sockaddr_in addr_server;
@@ -41,7 +41,7 @@ void HttpPost::Post(string host, string url, string data, int port) {
   if(res == -1) {
       cout<< "Connect failed "<<endl;
       close(sock);
-      return;
+      return NULL;
   }
 
   std::stringstream stream;
@@ -58,8 +58,9 @@ void HttpPost::Post(string host, string url, string data, int port) {
   send(sock,sendData.c_str(),sendData.size(),0);
   string  m_readBuffer;
   if(m_readBuffer.empty())
-      m_readBuffer.resize(512);
+      m_readBuffer.resize(2048);
   recv(sock,&m_readBuffer[0], m_readBuffer.size(),0);
 
   close(sock);
+	return m_readBuffer;
 } 

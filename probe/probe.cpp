@@ -26,15 +26,8 @@
 
 using namespace std;
 
-namespace {
-const char kGetLocalIp[] = "ifconfig | grep 'inet'| grep -v '127.0.0.1' | cut -d: -f2 | awk '{ print $1 }'";
-const char kGetLocalMac[] = "ifconfig | grep 'HWaddr' | awk '{ print $5 }'";
-}
-
 ProbeProcessor::ProbeProcessor() {
   DataClear();
-  SetLocalMac();
-  SetLocalIp();
 };
 
 ProbeProcessor::~ProbeProcessor() {
@@ -52,39 +45,13 @@ bool ProbeProcessor::IsDownload(struct ethhdr *eth) {
   return 0;
 }
 
-void ProbeProcessor::SetLocalIp() {
-  FILE *ip_file_ptr=NULL;
-  if((ip_file_ptr = popen(kGetLocalIp, "r")) == NULL) {
-    cout << "error" << endl;
-  }
-
-  char buff [1024];
-  if (fgets(buff, sizeof(buff), ip_file_ptr) != NULL) {
-    if (buff[strlen(buff) - 1] == '\n') {
-      buff[strlen(buff) - 1] = '\0';
-    }
-    local_ip_ = buff;
-  } else {
-    cout << "error" << endl;
-  }
-  pclose(ip_file_ptr);
+void ProbeProcessor::SetLocalIp(char* ip) {
+	local_ip_ = ip;
+	cout << local_ip_<<endl;
+  return;
 }
 
-void ProbeProcessor::SetLocalMac() {
-  FILE *ip_file_ptr=NULL;
-  if((ip_file_ptr = popen(kGetLocalMac, "r")) == NULL) {
-    cout << "error" << endl;
-  }
-
-  char buff [1024];
-  if (fgets(buff, sizeof(buff), ip_file_ptr) != NULL) {
-    if (buff[strlen(buff) - 1] == '\n') {
-      buff[strlen(buff) - 1] = '\0';
-    }
-    local_mac_ = buff;
-  } else {
-    cout << "error" << endl;
-  }
-  cout << local_mac_ << endl;
-  pclose(ip_file_ptr);
+void ProbeProcessor::SetLocalMac(char* mac) {
+	local_mac_ = mac;
+	cout << local_mac_<<endl;
 }
